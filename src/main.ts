@@ -20,7 +20,7 @@ class Main {
         // initialize babylon scene and engine
         this.engine = new Engine(this.canvas, true);
         this.scene = new Scene(this.engine);
-        this.CreateScene();
+        this.CreateScene().catch((err) => console.error(err));
 
         window.addEventListener("resize", () => {
             this.engine.resize();
@@ -45,7 +45,7 @@ class Main {
         });
     }
 
-    async CreateScene() {
+    private async CreateScene() {
         var camera: FreeCamera = new FreeCamera("Camera", new Vector3(0, 5, -10), this.scene);
         camera.setTarget(Vector3.Zero());
         camera.attachControl(this.canvas, true);
