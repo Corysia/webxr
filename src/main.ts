@@ -1,7 +1,8 @@
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
 import "@babylonjs/loaders/glTF";
-import { Engine, Scene, Vector3, HemisphericLight, Mesh, MeshBuilder, FreeCamera } from "@babylonjs/core";
+import cannon from "cannon";
+import { Engine, Scene, Vector3, HemisphericLight, Mesh, MeshBuilder, FreeCamera, CannonJSPlugin } from "@babylonjs/core";
 
 class Main {
 
@@ -54,6 +55,9 @@ class Main {
         var sphere: Mesh = MeshBuilder.CreateSphere("sphere", { diameter: 1 }, this.scene);
         sphere.position.y = 1;
 
+        const gravityVector = new Vector3(0, -9.8, 0);
+        const physicsPlugin = new CannonJSPlugin(true, 10, cannon);
+        this.scene.enablePhysics(gravityVector, physicsPlugin);
         this.scene.createDefaultEnvironment();
 
         const xrHelper = await this.scene.createDefaultXRExperienceAsync();
