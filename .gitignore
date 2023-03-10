@@ -1,9 +1,6 @@
 .DS_Store
 node_modules
-/dist
-
-# Custom deploy script
-deploy.sh
+dist/
 
 # archives
 *.tar
