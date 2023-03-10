@@ -1,7 +1,7 @@
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
 import "@babylonjs/loaders/glTF";
-// import cannon from "cannon";
+import cannon from "cannon";
 
 import { WebXRFeatureName, WebXRState } from "@babylonjs/core/XR";
 import { CannonJSPlugin, PhysicsImpostor } from "@babylonjs/core/Physics";
@@ -60,8 +60,8 @@ class Main {
         var scene = new Scene(engine);
 
         const gravityVector = new Vector3(0, -9.8, 0);
-        // const physicsPlugin = new CannonJSPlugin(cannon);
-        // scene.enablePhysics(gravityVector, physicsPlugin);
+        const physicsPlugin = new CannonJSPlugin();
+        scene.enablePhysics(gravityVector, physicsPlugin);
 
         const clearColor = Color3.Teal();
         scene.clearColor = new Color4(clearColor.r, clearColor.g, clearColor.b, 1.0);
@@ -94,7 +94,6 @@ class Main {
         var boxMaterial = new StandardMaterial("", scene);
         boxMaterial.diffuseColor = Color3.FromHexString("#ad8762");
 
-        // https://playground.babylonjs.com/pg/B922X8/revision/19
         var towerMeshes = [];
         for (var x = 0; x < 7; x++) {
             for (var y = 0; y < 7; y++) {
@@ -107,10 +106,10 @@ class Main {
                     box1.position.x = (x - 3) * 1.6;
                     box1.position.y = 2 + y * 1.5;
                     box1.position.z = 15 + z * 2.5;
-                    // box1.physicsImpostor = new PhysicsImpostor(box1,
-                    //     PhysicsImpostor.BoxImpostor,
-                    //     { mass: 0.2, friction: 0.5, restitution: 0 }, scene);
-                    // towerMeshes.push(box1);
+                    box1.physicsImpostor = new PhysicsImpostor(box1,
+                        PhysicsImpostor.BoxImpostor,
+                        { mass: 0.2, friction: 0.5, restitution: 0 }, scene);
+                    towerMeshes.push(box1);
                 }
             }
         }
@@ -152,7 +151,6 @@ class Main {
         }
     });
 
-    // https://qiita.com/wjs_fxf/items/37c203e5432ba238dbb8
     webXRInput.onControllerAddedObservable.add((controller) => {
         const moveSpeed = 0.1;
         controller.onMotionControllerInitObservable.add((controller) => {
@@ -187,7 +185,6 @@ class Main {
                         case "xr-standard-thumbstick":
                             var isHorizontalRotate = false;
 
-                            // https://github.com/BabylonJS/js/blob/6a6a5cfc2354fff165d9bae083185ef602440625/src/XR/features/WebXRControllerTeleportation.ts#L573-L576
                             component.onAxisValueChangedObservable.add(function (
                                 eventData: { x: number, y: number }, _: EventState) {
                                 const { x } = eventData;
