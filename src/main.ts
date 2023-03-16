@@ -202,8 +202,11 @@ class Main {
                                     }
 
                                     const eulerAngles = Quaternion.FromEulerAngles(0, rotationAngle, 0);
+                                    console.debug("eulerAngles", eulerAngles);
                                     // webXRInput.xrCamera.rotation.multiplyInPlace(new Vector3(0, rotationAngle, 0));
+                                    // webXRInput.xrCamera.rotation = new Vector3(0, webXRInput.xrCamera.rotation.y * rotationAngle, 0);
                                     webXRInput.xrCamera.rotationQuaternion.multiplyInPlace(eulerAngles);
+                                    console.debug("camera rotation: ", webXRInput.xrCamera.rotationQuaternion.toEulerAngles());
                                 } else if (Math.abs(x) < 0.8) {
                                     isHorizontalRotate = true
                                 }
