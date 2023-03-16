@@ -1,7 +1,7 @@
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
 import "@babylonjs/loaders/glTF";
-// import cannon from "cannon";
+import * as CANNON from "cannon";
 
 import { WebXRFeatureName, WebXRState } from "@babylonjs/core/XR";
 import { CannonJSPlugin, PhysicsImpostor } from "@babylonjs/core/Physics";
@@ -59,9 +59,9 @@ class Main {
         // This creates a basic Babylon Scene object (non-mesh)
         var scene = new Scene(engine);
 
-        const gravityVector = new Vector3(0, -9.8, 0);
-        // const physicsPlugin = new CannonJSPlugin(cannon);
-        // scene.enablePhysics(gravityVector, physicsPlugin);
+        const gravityVector = new Vector3(0, -9.81, 0);
+        const physicsPlugin = new CannonJSPlugin(true, 10, CANNON);
+        scene.enablePhysics(gravityVector, physicsPlugin);
 
         const clearColor = Color3.Teal();
         scene.clearColor = new Color4(clearColor.r, clearColor.g, clearColor.b, 1.0);
@@ -107,10 +107,10 @@ class Main {
                     box1.position.x = (x - 3) * 1.6;
                     box1.position.y = 2 + y * 1.5;
                     box1.position.z = 15 + z * 2.5;
-                    // box1.physicsImpostor = new PhysicsImpostor(box1,
-                    //     PhysicsImpostor.BoxImpostor,
-                    //     { mass: 0.2, friction: 0.5, restitution: 0 }, scene);
-                    // towerMeshes.push(box1);
+                    box1.physicsImpostor = new PhysicsImpostor(box1,
+                        PhysicsImpostor.BoxImpostor,
+                        { mass: 0.2, friction: 0.5, restitution: 0 }, scene);
+                    towerMeshes.push(box1);
                 }
             }
         }
