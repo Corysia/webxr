@@ -145,9 +145,10 @@ class Main {
         switch (state) {
             case WebXRState.IN_XR:
             case WebXRState.ENTERING_XR:
-                webXRInput.xrCamera.position = Vector3.Zero();
-                webXRInput.xrCamera.position.z = -10;
-                webXRInput.xrCamera.position.y = 2;
+                // webXRInput.xrCamera.position = Vector3.Zero();
+                // webXRInput.xrCamera.position.z = -10;
+                // webXRInput.xrCamera.position.y = 2;
+                webXRInput.xrCamera.setTransformationFromNonVRCamera(scene.activeCamera, true); // put the camera where the non-VR camera is
                 break;
         }
     });
@@ -201,6 +202,7 @@ class Main {
                                     }
 
                                     const eulerAngles = Quaternion.FromEulerAngles(0, rotationAngle, 0);
+                                    // webXRInput.xrCamera.rotation.multiplyInPlace(new Vector3(0, rotationAngle, 0));
                                     webXRInput.xrCamera.rotationQuaternion.multiplyInPlace(eulerAngles);
                                 } else if (Math.abs(x) < 0.8) {
                                     isHorizontalRotate = true
