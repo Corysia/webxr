@@ -39,8 +39,7 @@ class Main {
         // hide/show the Inspector
         window.addEventListener("keydown", (ev) => {
             // Shift+Ctrl+Alt+I
-            // keyCode 73 = I, need to use this because ev.key === "I" doesn't work on a Mac
-            if (ev.shiftKey && ev.ctrlKey && ev.altKey && ev.keyCode === 73) {
+            if (ev.shiftKey && ev.ctrlKey && ev.altKey && ev.code == "KeyI") {
                 if (this.scene.debugLayer.isVisible()) {
                     this.scene.debugLayer.hide();
                 } else {
@@ -82,7 +81,7 @@ class Main {
         light.intensity = 0.7;
 
         // Our built-in 'ground' shape. Params: name, width, depth, subdivs, scene
-        var ground = Mesh.CreateGround("ground1", 40, 40, 2, scene);
+        var ground = MeshBuilder.CreateGround("ground1", { width: 40, height: 40, subdivisions: 2 }, scene);
         ground.physicsImpostor = new PhysicsImpostor(ground, PhysicsImpostor.BoxImpostor, { mass: 0, friction: 0.8, restitution: 0.5, disableBidirectionalTransformation: true }, scene);
         ground.checkCollisions = true;
         var groundMaterial = new StandardMaterial("groundMaterial", scene);
