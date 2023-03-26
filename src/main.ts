@@ -3,7 +3,7 @@ import "@babylonjs/inspector";
 import "@babylonjs/loaders/glTF";
 
 import { Engine } from "@babylonjs/core/Engines";
-import { Color3, FreeCamera, HemisphericLight, Mesh, MeshBuilder, Scene, StandardMaterial, TargetCamera, Texture, Vector3, WebXRControllerComponent, WebXRFeatureName, WebXRState } from "@babylonjs/core/";
+import { Color3, FreeCamera, HemisphericLight, Mesh, MeshBuilder, Scene, StandardMaterial, TargetCamera, Texture, Vector3, WebXRControllerComponent, WebXRControllerMovement, WebXRFeatureName, WebXRState } from "@babylonjs/core/";
 
 /*
  * Mail application
@@ -59,7 +59,7 @@ class Main {
         // hide/show the Inspector
         window.addEventListener("keydown", (ev) => {
             // Shift+Ctrl+Alt+I
-            if (ev.shiftKey && ev.ctrlKey && ev.altKey && ev.keyCode === 72) {
+            if (ev.shiftKey && ev.ctrlKey && ev.altKey && ev.code == "KeyI") {
                 if (this.scene.debugLayer.isVisible()) {
                     this.scene.debugLayer.hide();
                 } else {
@@ -83,7 +83,7 @@ class Main {
     public CreateScene(engine: Engine, canvas: HTMLCanvasElement): Scene {
         var scene = new Scene(engine);
 
-        scene.gravity = new Vector3(0, -0.5, 0);
+        scene.gravity = new Vector3(0, -9.81 / 60, 0);
         scene.collisionsEnabled = true;
 
         var light = new HemisphericLight("light1", new Vector3(0, 1, 0), scene);
@@ -91,7 +91,7 @@ class Main {
         var sphere = MeshBuilder.CreateSphere("sphere1", { segments: 16, diameter: 1 }, scene);
         sphere.position.y = 1.25;
 
-        const ground1 = MeshBuilder.CreateGround('ground1', { width: 20, height: 14, subdivisions: 16 }, scene);
+        const ground1 = MeshBuilder.CreateGround('ground1', { width: 200, height: 200, subdivisions: 16 }, scene);
         ground1.position.y = 0;
         ground1.checkCollisions = true;
 
@@ -130,12 +130,12 @@ class Main {
         ground4.position.y = 0.75;
         ground4.material = redMaterial;
 
-        // const triangle = MeshBuilder.CreateCylinder('triangle', { height: 1, diameter: 1, tessellation: 4, subdivisions: 4 }, scene);
-        // const triangleMaterial = new StandardMaterial('triangle-mat', scene);
-        // triangleMaterial.emissiveColor = Color3.Red();
-        // triangleMaterial.specularColor = Color3.Black();
-        // triangle.material = triangleMaterial;
-        // triangle.isVisible = false;
+        const triangle = MeshBuilder.CreateCylinder('triangle', { height: 1, diameter: 1, tessellation: 4, subdivisions: 4 }, scene);
+        const triangleMaterial = new StandardMaterial('triangle-mat', scene);
+        triangleMaterial.emissiveColor = Color3.Red();
+        triangleMaterial.specularColor = Color3.Black();
+        triangle.material = triangleMaterial;
+        triangle.isVisible = false;
 
         return scene;
     }
@@ -147,14 +147,36 @@ class Main {
         camera.setTarget(Vector3.Zero());
         camera.attachControl(this.canvas, true);
         camera.speed = 0.5;
-        camera.minZ = 0.45;
+        camera.minZ = 0.2;
         camera.angularSensibility = 4000;
 
         // set up collisions
         camera.checkCollisions = true;
         camera.applyGravity = true;
-        camera.ellipsoid = new Vector3(1, 1, 1);
+        camera.ellipsoid = new Vector3(0.3, 1, 0.3);
 
+        // Enable WASD keys
+        camera.keysUp.push(87); // W
+        camera.keysDown.push(83); // S
+        camera.keysLeft.push(65); // A
+        camera.keysRight.push(68); // D
+
+        this.scene.onPointerDown = (evt) => {
+            // evt.button === 0 is the left mouse button
+            // evt.button === 1 is the middle mouse button
+            // evt.button === 2 is the right mouse button
+            if (evt.button === 2) {
+                this.engine.enterPointerlock();
+            // } else if (evt.button === 1) { // middle mouse
+            //     SceneManager.Instance.Engine.exitPointerlock();
+            }
+        };
+
+        this.scene.onPointerUp = (evt) => {
+            if (evt.button === 2) {
+                this.engine.exitPointerlock();
+            }
+        }
         return camera;
     }
 
@@ -171,7 +193,7 @@ class Main {
             {
                 allowedComponentTypes: [WebXRControllerComponent.THUMBSTICK_TYPE, WebXRControllerComponent.TOUCHPAD_TYPE],
                 forceHandedness: "right",
-                axisChangedHandler: (axes, movementState, featureContext, xrInput) => {
+                axisChangedHandler: (axes: { x: number; y: number; }, movementState: { rotateX: any; rotateY: any; }, featureContext: { rotationThreshold: number; }, xrInput: any) => {
                     movementState.rotateX = Math.abs(axes.x) > featureContext.rotationThreshold ? axes.x : 0;
                     movementState.rotateY = Math.abs(axes.y) > featureContext.rotationThreshold ? axes.y : 0;
                 },
@@ -179,7 +201,7 @@ class Main {
             {
                 allowedComponentTypes: [WebXRControllerComponent.THUMBSTICK_TYPE, WebXRControllerComponent.TOUCHPAD_TYPE],
                 forceHandedness: "left",
-                axisChangedHandler: (axes, movementState, featureContext, xrInput) => {
+                axisChangedHandler: (axes: { x: number; y: number; }, movementState: { moveX: any; moveY: any; }, featureContext: { movementThreshold: number; }, xrInput: any) => {
                     movementState.moveX = Math.abs(axes.x) > featureContext.movementThreshold ? axes.x : 0;
                     movementState.moveY = Math.abs(axes.y) > featureContext.movementThreshold ? axes.y : 0;
                 },
@@ -190,7 +212,7 @@ class Main {
             {
                 allowedComponentTypes: [WebXRControllerComponent.THUMBSTICK_TYPE, WebXRControllerComponent.TOUCHPAD_TYPE],
                 forceHandedness: "left",
-                axisChangedHandler: (axes, movementState, featureContext, xrInput) => {
+                axisChangedHandler: (axes: { x: number; y: number; }, movementState: { rotateX: any; rotateY: any; }, featureContext: { rotationThreshold: number; }, xrInput: any) => {
                     movementState.rotateX = Math.abs(axes.x) > featureContext.rotationThreshold ? axes.x : 0;
                     movementState.rotateY = Math.abs(axes.y) > featureContext.rotationThreshold ? axes.y : 0;
                 },
@@ -198,7 +220,7 @@ class Main {
             {
                 allowedComponentTypes: [WebXRControllerComponent.THUMBSTICK_TYPE, WebXRControllerComponent.TOUCHPAD_TYPE],
                 forceHandedness: "right",
-                axisChangedHandler: (axes, movementState, featureContext, xrInput) => {
+                axisChangedHandler: (axes: { x: number; y: number; }, movementState: { moveX: any; moveY: any; }, featureContext: { movementThreshold: number; }, xrInput: any) => {
                     movementState.moveX = Math.abs(axes.x) > featureContext.movementThreshold ? axes.x : 0;
                     movementState.moveY = Math.abs(axes.y) > featureContext.movementThreshold ? axes.y : 0;
                 },
@@ -236,24 +258,27 @@ class Main {
         camera.ellipsoid = new Vector3(1, 1, 1);
 
         xr.baseExperience.onStateChangedObservable.add((webXRState) => {
+            const triangle = this.scene.getMeshByName('triangle')!;
             switch (webXRState) {
                 case WebXRState.ENTERING_XR:
                 case WebXRState.IN_XR:
-                    // triangle.isVisible = true;
+                    triangle.isVisible = true;
                     break;
                 case WebXRState.EXITING_XR:
                 case WebXRState.NOT_IN_XR:
                 default:
-                    // triangle.isVisible = false;
+                    triangle.isVisible = false;
                     break;
             }
         });
 
         xr.baseExperience.sessionManager.onXRFrameObservable.add(() => {
             if (xr.baseExperience.state === WebXRState.IN_XR) {
+                const triangle = this.scene.getMeshByName('triangle')!;
+                const movementFeature = xr.baseExperience.featuresManager.getEnabledFeature("xr-controller-movement") as WebXRControllerMovement;
                 xr.input.xrCamera.setTransformationFromNonVRCamera(this.scene.activeCamera, true); // put the camera where the non-VR camera is
-                // triangle.rotation.y = (0.5 + movementFeature.movementDirection.toEulerAngles().y);
-                // triangle.position.set(xr.input.xrCamera.position.x, 0.5, xr.input.xrCamera.position.z);
+                triangle.rotation.y = (0.5 + movementFeature.movementDirection.toEulerAngles().y);
+                triangle.position.set(xr.input.xrCamera.position.x, 0.5, xr.input.xrCamera.position.z);
             }
         });
     }
