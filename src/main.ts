@@ -1,24 +1,56 @@
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
 import "@babylonjs/loaders/glTF";
-import * as CANNON from "cannon";
 
-import { WebXRFeatureName, WebXRState } from "@babylonjs/core/XR";
-import { CannonJSPlugin, PhysicsImpostor } from "@babylonjs/core/Physics";
-import { EventState } from "@babylonjs/core/Misc";
-import { Color3, Color4, Matrix, Quaternion, Vector3 } from "@babylonjs/core/Maths";
 import { Engine } from "@babylonjs/core/Engines";
-import { Scene, StandardMaterial } from "@babylonjs/core/";
-import { FreeCamera } from "@babylonjs/core/Cameras";
-import { HemisphericLight } from "@babylonjs/core/Lights";
-import { Mesh, MeshBuilder } from "@babylonjs/core/Meshes";
-
+import { CannonJSPlugin, Color3, FreeCamera, HemisphericLight, Mesh, MeshBuilder, PhysicsImpostor, Scene, StandardMaterial, TargetCamera, Texture, Vector3, WebXRControllerComponent, WebXRControllerMovement, WebXRFeatureName, WebXRMotionControllerTeleportation, WebXRState } from "@babylonjs/core/";
+import * as CANNON from "cannon";
+/*
+ * Mail application
+ * 
+ * @class Main
+*/
 class Main {
 
     private canvas: HTMLCanvasElement;
     private engine: Engine;
     private scene: Scene;
+    private disableTeleportation = false;
+    private movementOrientationHandedness = true; // true for right, false for left
+    private movementSpeed = 0.1;
+    private movementOrientationHMD = true; // can't change this yet as it seems to be broken in Babylon
+    private movementParabolicRay = false;
+    private movementDisableTorusAnimation = true;
+    private movementDisableTorusLighting = true;
+    private movementRotationOnTeleport = true;
+    private movementTeleportBackwards = false;
+    private movementTeleportBackwardsDistance = 0.7;
+    private movementTeleportSnapPointsOnly = true;
+    private movementRotationAngle = Math.PI / 8;
 
+    private enableHandTracking = true;
+    private disableDefaultHandMeshes = false;
+    private enableHandPhysics = false;
+
+
+    private colors = {
+        seaFoam: Color3.FromHexString("#16a085"),
+        green: Color3.FromHexString("#27ae60"),
+        blue: Color3.FromHexString("#2980b9"),
+        purple: Color3.FromHexString("#8e44ad"),
+        navy: Color3.FromHexString("#2c3e50"),
+        yellow: Color3.FromHexString("#f39c12"),
+        orange: Color3.FromHexString("#d35400"),
+        red: Color3.FromHexString("#c0392b"),
+        white: Color3.FromHexString("#bdc3c7"),
+        gray: Color3.FromHexString("#7f8c8d")
+    }
+
+    /**
+     * Creates an instance of Main.
+     * 
+     * @memberOf Main
+     */
     constructor() {
         // create the canvas html element and attach it to the webpage
         this.canvas = document.createElement("canvas");
@@ -29,8 +61,9 @@ class Main {
 
         // initialize babylon scene and engine
         this.engine = new Engine(this.canvas, true);
-        // this.scene = new Scene(this.engine);
-        this.scene = Main.CreateScene(this.engine, this.canvas);
+        this.scene = this.CreateScene(this.engine, this.canvas);
+        this.setupCamera();
+        this.setupXR();
 
         window.addEventListener("resize", () => {
             this.engine.resize();
@@ -54,168 +87,294 @@ class Main {
         });
     }
 
-    public static CreateScene(engine: Engine, canvas: HTMLCanvasElement): Scene {
-        // This creates a basic Babylon Scene object (non-mesh)
+    /**
+     * Create the scene and add all the elements to it
+     * @param {Engine} engine
+     * @param {HTMLCanvasElement} canvas
+     * @returns {Scene}
+     */
+    public CreateScene(engine: Engine, canvas: HTMLCanvasElement): Scene {
         var scene = new Scene(engine);
 
+        scene.gravity = new Vector3(0, -9.81 / 60, 0);
         const gravityVector = new Vector3(0, -9.81, 0);
         const physicsPlugin = new CannonJSPlugin(true, 10, CANNON);
         scene.enablePhysics(gravityVector, physicsPlugin);
+        scene.collisionsEnabled = true;
 
-        const clearColor = Color3.Teal();
-        scene.clearColor = new Color4(clearColor.r, clearColor.g, clearColor.b, 1.0);
-
-        // This creates and positions a free camera (non-mesh)
-        var camera = new FreeCamera("camera1", new Vector3(0, 2, -10), scene);
-
-        // This targets the camera to scene origin
-        camera.setTarget(Vector3.Zero());
-
-        // This attaches the camera to the canvas
-        camera.attachControl(canvas, true);
-
-        // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
         var light = new HemisphericLight("light1", new Vector3(0, 1, 0), scene);
-
-        // Default intensity is 1. Let's dim the light a small amount
         light.intensity = 0.7;
+        var sphere = MeshBuilder.CreateSphere("sphere1", { segments: 16, diameter: 1 }, scene);
+        sphere.position.y = 1.25;
 
-        // Our built-in 'ground' shape. Params: name, width, depth, subdivs, scene
-        var ground = MeshBuilder.CreateGround("ground1", { width: 40, height: 40, subdivisions: 2 }, scene);
-        ground.physicsImpostor = new PhysicsImpostor(ground, PhysicsImpostor.BoxImpostor, { mass: 0, friction: 0.8, restitution: 0.5, disableBidirectionalTransformation: true }, scene);
-        ground.checkCollisions = true;
-        var groundMaterial = new StandardMaterial("groundMaterial", scene);
-        groundMaterial.diffuseColor = Color3.Gray();
-        ground.material = groundMaterial;
-        ground.material.freeze();
+        const ground1 = MeshBuilder.CreateGround('ground1', { width: 200, height: 200, subdivisions: 16 }, scene);
+        ground1.position.y = 0;
+        ground1.checkCollisions = true;
 
-        var towerMeshes = [];
-        var boxMaterial = new StandardMaterial("", scene);
-        boxMaterial.diffuseColor = Color3.FromHexString("#ad8762");
+        //Simple crate
+        var box = MeshBuilder.CreateBox("crate", { size: 2 }, scene);
+        const boxMaterial = new StandardMaterial("Mat", scene);
+        boxMaterial.diffuseTexture = new Texture("textures/crate.png", scene);
+        boxMaterial.diffuseTexture.hasAlpha = true;
+        box.position = new Vector3(5, 1, 5);
+        box.checkCollisions = true;
+        box.material = boxMaterial;
 
-        // https://playground.babylonjs.com/pg/B922X8/revision/19
-        var towerMeshes = [];
-        for (var x = 0; x < 7; x++) {
-            for (var y = 0; y < 7; y++) {
-                for (var z = 0; z < 1; z++) {
-                    var box1 = MeshBuilder.CreateBox("towerBox",
-                        { width: 1.5, height: 1.2, depth: 1.5, sideOrientation: Mesh.FRONTSIDE, updatable: false }, scene);
-                    box1.material = boxMaterial;
-                    box1.material.freeze();
+        const orangeMaterial = new StandardMaterial('orangeMat', scene);
+        orangeMaterial.specularColor = Color3.Black();
+        orangeMaterial.emissiveColor = Color3.FromHexString('#FFAF00');
 
-                    box1.position.x = (x - 3) * 1.6;
-                    box1.position.y = 2 + y * 1.5;
-                    box1.position.z = 15 + z * 2.5;
-                    box1.physicsImpostor = new PhysicsImpostor(box1,
-                        PhysicsImpostor.BoxImpostor,
-                        { mass: 0.2, friction: 0.5, restitution: 0 }, scene);
-                    towerMeshes.push(box1);
-                }
-            }
-        }
+        const greenMaterial = new StandardMaterial('greenMat', scene);
+        greenMaterial.specularColor = Color3.Black();
+        greenMaterial.emissiveColor = Color3.Green();
 
-        (async () => {
-            await Main.MovingByWebXRController(scene, ground);
-        })()
+        const redMaterial = new StandardMaterial('redMat', scene);
+        redMaterial.specularColor = Color3.Black();
+        redMaterial.emissiveColor = Color3.Red();
+
+        const ground2 = MeshBuilder.CreateGround('ground2', { width: 4, height: 4, subdivisions: 16 }, scene);
+        ground2.position.y = 0.25;
+        ground2.material = greenMaterial;
+        ground2.checkCollisions = true;
+
+        const ground3 = MeshBuilder.CreateGround('ground3', { width: 3, height: 3, subdivisions: 16 }, scene);
+        ground3.position.y = 0.5;
+        ground3.material = orangeMaterial;
+        ground3.checkCollisions = true;
+
+        const ground4 = MeshBuilder.CreateGround('ground4', { width: 2, height: 2, subdivisions: 16 }, scene);
+        ground4.position.y = 0.75;
+        ground4.material = redMaterial;
+
+        const triangle = MeshBuilder.CreateCylinder('triangle', { height: 1, diameter: 1, tessellation: 4, subdivisions: 4 }, scene);
+        const triangleMaterial = new StandardMaterial('triangle-mat', scene);
+        triangleMaterial.emissiveColor = Color3.Red();
+        triangleMaterial.specularColor = Color3.Black();
+        triangle.material = triangleMaterial;
+        triangle.isVisible = false;
 
         return scene;
     }
 
-    public static async MovingByWebXRController(scene: Scene, ground: Mesh) {
-    var xrHelper = await scene.createDefaultXRExperienceAsync({
-        floorMeshes: [ground]
-    });
+    private setupCamera(): FreeCamera {
+        const camera = new FreeCamera("FirstPersonController", new Vector3(0, 2.5, -6), this.scene);
+        camera.inputs.addMouse();
+        camera.inputs._mouseInput.buttons = [2];
+        camera.setTarget(Vector3.Zero());
+        camera.attachControl(this.canvas, true);
+        camera.speed = 0.5;
+        camera.minZ = 0.2;
+        camera.angularSensibility = 4000;
 
-    const xrPhysics = xrHelper.baseExperience.featuresManager.enableFeature(WebXRFeatureName.PHYSICS_CONTROLLERS, "latest", {
-        xrInput: xrHelper.input,
-        physicsProperties: {
-            restitution: 0.5,
-            impostorSize: 0.1,
-            impostorType: PhysicsImpostor.BoxImpostor
-        },
-        enableHeadsetImpostor: true
-    });
+        // set up collisions
+        camera.checkCollisions = true;
+        camera.applyGravity = true;
+        camera.ellipsoid = new Vector3(0.3, 1, 0.3);
 
-    xrHelper.baseExperience.featuresManager.disableFeature(WebXRFeatureName.TELEPORTATION);
+        // Enable WASD keys
+        camera.keysUp.push(87); // W
+        camera.keysDown.push(83); // S
+        camera.keysLeft.push(65); // A
+        camera.keysRight.push(68); // D
 
-    var webXRInput = await xrHelper.input;
+        this.scene.onPointerDown = (evt) => {
+            // evt.button === 0 is the left mouse button
+            // evt.button === 1 is the middle mouse button
+            // evt.button === 2 is the right mouse button
+            if (evt.button === 2) {
+                this.engine.enterPointerlock();
+                // } else if (evt.button === 1) { // middle mouse
+                //     SceneManager.Instance.Engine.exitPointerlock();
+            }
+        };
 
-    xrHelper.baseExperience.onStateChangedObservable.add(function (state: WebXRState) {
-        switch (state) {
-            case WebXRState.IN_XR:
-            case WebXRState.ENTERING_XR:
-                // webXRInput.xrCamera.position = Vector3.Zero();
-                // webXRInput.xrCamera.position.z = -10;
-                // webXRInput.xrCamera.position.y = 2;
-                webXRInput.xrCamera.setTransformationFromNonVRCamera(scene.activeCamera, true); // put the camera where the non-VR camera is
-                break;
+        this.scene.onPointerUp = (evt) => {
+            if (evt.button === 2) {
+                this.engine.exitPointerlock();
+            }
         }
-    });
+        return camera;
+    }
 
-    // https://qiita.com/wjs_fxf/items/37c203e5432ba238dbb8
-    webXRInput.onControllerAddedObservable.add((controller) => {
-        const moveSpeed = 0.1;
-        controller.onMotionControllerInitObservable.add((controller) => {
-            if (controller.handness == "left") {
-                let ids = controller.getComponentIds()
-                for (let i = 0; i < ids.length; i++) {
-                    let component = controller.getComponent(ids[i])
-                    switch (ids[i]) {
-                        case "xr-standard-thumbstick":
-                            component.onAxisValueChangedObservable.add(function (
-                                eventData: { x: number, y: number }, _: EventState) {
-                                const { x, y } = eventData;
+    /**
+     * Setup the XR experience
+     * @returns {Promise<void>}
+     * @memberof Main
+     * @private
+     * @async
+     */
+    private async setupXR(): Promise<void> {
 
-                                const matrix = new Matrix();
-                                const deviceRotationQuaternion = webXRInput.xrCamera.rotationQuaternion;
-                                Matrix.FromQuaternionToRef(deviceRotationQuaternion, matrix);
+        const rightHandedMovementConfiguration = [
+            {
+                allowedComponentTypes: [WebXRControllerComponent.THUMBSTICK_TYPE, WebXRControllerComponent.TOUCHPAD_TYPE],
+                forceHandedness: "right",
+                axisChangedHandler: (axes: { x: number; y: number; }, movementState: { rotateX: any; rotateY: any; }, featureContext: { rotationThreshold: number; }, xrInput: any) => {
+                    movementState.rotateX = Math.abs(axes.x) > featureContext.rotationThreshold ? axes.x : 0;
+                    movementState.rotateY = Math.abs(axes.y) > featureContext.rotationThreshold ? axes.y : 0;
+                },
+            },
+            {
+                allowedComponentTypes: [WebXRControllerComponent.THUMBSTICK_TYPE, WebXRControllerComponent.TOUCHPAD_TYPE],
+                forceHandedness: "left",
+                axisChangedHandler: (axes: { x: number; y: number; }, movementState: { moveX: any; moveY: any; }, featureContext: { movementThreshold: number; }, xrInput: any) => {
+                    movementState.moveX = Math.abs(axes.x) > featureContext.movementThreshold ? axes.x : 0;
+                    movementState.moveY = Math.abs(axes.y) > featureContext.movementThreshold ? axes.y : 0;
+                },
+            },
+        ];
 
-                                const move = new Vector3(x * moveSpeed, 0, -y * moveSpeed);
-                                const addPos = Vector3.TransformCoordinates(move, matrix);
-                                addPos.y = 0;
+        const leftHandedMovementConfiguration = [
+            {
+                allowedComponentTypes: [WebXRControllerComponent.THUMBSTICK_TYPE, WebXRControllerComponent.TOUCHPAD_TYPE],
+                forceHandedness: "left",
+                axisChangedHandler: (axes: { x: number; y: number; }, movementState: { rotateX: any; rotateY: any; }, featureContext: { rotationThreshold: number; }, xrInput: any) => {
+                    movementState.rotateX = Math.abs(axes.x) > featureContext.rotationThreshold ? axes.x : 0;
+                    movementState.rotateY = Math.abs(axes.y) > featureContext.rotationThreshold ? axes.y : 0;
+                },
+            },
+            {
+                allowedComponentTypes: [WebXRControllerComponent.THUMBSTICK_TYPE, WebXRControllerComponent.TOUCHPAD_TYPE],
+                forceHandedness: "right",
+                axisChangedHandler: (axes: { x: number; y: number; }, movementState: { moveX: any; moveY: any; }, featureContext: { movementThreshold: number; }, xrInput: any) => {
+                    movementState.moveX = Math.abs(axes.x) > featureContext.movementThreshold ? axes.x : 0;
+                    movementState.moveY = Math.abs(axes.y) > featureContext.movementThreshold ? axes.y : 0;
+                },
+            },
+        ];
 
-                                webXRInput.xrCamera.position = webXRInput.xrCamera.position.add(addPos);
-                            })
-                            break
+        const swappedHandnessConfiguration = this.movementOrientationHandedness ? rightHandedMovementConfiguration : leftHandedMovementConfiguration;
+
+        const xr = await this.scene.createDefaultXRExperienceAsync({
+            disableTeleportation: this.disableTeleportation,
+            floorMeshes: [this.scene.getMeshByName('ground1')!]
+        });
+
+
+        const featureManager = xr.baseExperience.featuresManager;
+
+        // enable hand tracking
+        if (this.enableHandTracking) {
+            try
+            {
+                featureManager.enableFeature(WebXRFeatureName.HAND_TRACKING, 'latest', {
+                    xrInput: xr.input,
+                    jointMeshes: {
+                        disableDefaultMeshes: this.disableDefaultHandMeshes,
+                        enablePhysics: this.enableHandPhysics,
+                        physicsProps: {
+                            impostorType: PhysicsImpostor.BoxImpostor,
+                            friction: 0.5,
+                            restitution: 0.3,
+                        },
+                        // see the documentation for custom hand meshes: https://doc.babylonjs.com/features/featuresDeepDive/webXR/WebXRSelectedFeatures#hand-meshes
                     }
-                }
-            } else if (controller.handness == "right") {
-                let ids = controller.getComponentIds()
-                for (let i = 0; i < ids.length; i++) {
-                    let component = controller.getComponent(ids[i])
-                    switch (ids[i]) {
-                        case "xr-standard-thumbstick":
-                            var isHorizontalRotate = false;
+                });
+            }
+            catch (e) {
+                console.log('Hand tracking not supported');
+            }
+        }
 
-                            // https://github.com/BabylonJS/js/blob/6a6a5cfc2354fff165d9bae083185ef602440625/src/XR/features/WebXRControllerTeleportation.ts#L573-L576
-                            component.onAxisValueChangedObservable.add(function (
-                                eventData: { x: number, y: number }, _: EventState) {
-                                const { x } = eventData;
+        // Remember: Need to reconfigure as the previous configuration is overwritten
+        if (this.disableTeleportation) {
+            featureManager.disableFeature(WebXRFeatureName.TELEPORTATION);
+            const smoothLocomotion = featureManager.enableFeature(WebXRFeatureName.MOVEMENT, 'latest', {
+                xrInput: xr.input,
+                floorMeshes: [this.scene.getMeshByName('ground1')!],
+                customRegistrationConfigurations: swappedHandnessConfiguration,
+                // add options here
+                movementOrientationFollowsViewerPose: this.movementOrientationHMD,
+                rotationAngle: this.movementRotationAngle
+            }) as WebXRControllerMovement;
+            smoothLocomotion.movementSpeed = this.movementSpeed;
+        }
+        else {
+            const torusMaterial = new StandardMaterial('torusMaterial', this.scene);
+            torusMaterial.backFaceCulling = false;
+            torusMaterial.diffuseColor = Color3.Green();
+            torusMaterial.specularColor = Color3.Black();
+            torusMaterial.emissiveColor = Color3.FromHexString('#55FF99');
+            torusMaterial.alpha = 0.5;
+            // you can apply a texture, too
 
-                                if (isHorizontalRotate && Math.abs(x) > 0.8) {
-                                    isHorizontalRotate = false;
+            // Snap-to (hotspot) locations (optional)
+            const spotMaterial = new StandardMaterial('spotMaterial', this.scene);
+            spotMaterial.diffuseColor = Color3.Teal();
+            spotMaterial.emissiveColor = Color3.Teal();
+            const interestingSpot = new Vector3(-4, 0, 4);
+            const interestingSpotBox = MeshBuilder.CreateBox('interestingSpotBox', { height: 0.01, width: 1, depth: 1 }, this.scene);
+            interestingSpotBox.position = interestingSpot;
+            interestingSpotBox.material = spotMaterial;
+            const interestingSpot2 = new Vector3(4, 0, 4);
+            const interestingSpotBox2 = MeshBuilder.CreateBox('interestingSpotBox2', { height: 0.01, width: 1, depth: 1 }, this.scene);
+            interestingSpotBox2.position = interestingSpot2;
+            interestingSpotBox2.material = spotMaterial;
 
-                                    var rotationAngle = Math.PI / 8;
-                                    if (x <= 0) {
-                                        rotationAngle = -rotationAngle;
-                                    }
+            featureManager.disableFeature(WebXRFeatureName.MOVEMENT);
+            const teleportation = featureManager.enableFeature(WebXRFeatureName.TELEPORTATION, 'latest', {
+                xrInput: xr.input,
+                floorMeshes: [this.scene.getMeshByName('ground1')!],
+                parabolicRayEnabled: this.movementParabolicRay,
+                rotationEnabled: this.movementRotationOnTeleport,
+                backwardsMovementEnabled: this.movementTeleportBackwards,
+                backwardsTeleportationDistance: this.movementTeleportBackwardsDistance,
+                rotationAngle: this.movementRotationAngle,
+                renderGroupId: 1,
+                snapPositions: [interestingSpot, interestingSpot2],
+                snapToPositonRadius: 1.2,
+                snapPointsOnly: this.movementTeleportSnapPointsOnly,
+                defaultTargetMeshOptions: {
+                    teleportationFillColor: "#55FF99",
+                    teleportationBorderColor: "blue",
+                    torusArrowMaterial: torusMaterial,
+                    disableAnimation: this.movementDisableTorusAnimation,
+                    disableLighting: this.movementDisableTorusLighting,
+                },
+            }) as WebXRMotionControllerTeleportation;
 
-                                    const eulerAngles = Quaternion.FromEulerAngles(0, rotationAngle, 0);
-                                    console.debug("eulerAngles", eulerAngles);
-                                    // webXRInput.xrCamera.rotation.multiplyInPlace(new Vector3(0, rotationAngle, 0));
-                                    // webXRInput.xrCamera.rotation = new Vector3(0, webXRInput.xrCamera.rotation.y * rotationAngle, 0);
-                                    webXRInput.xrCamera.rotationQuaternion.multiplyInPlace(eulerAngles);
-                                    console.debug("camera rotation: ", webXRInput.xrCamera.rotationQuaternion.toEulerAngles());
-                                } else if (Math.abs(x) < 0.8) {
-                                    isHorizontalRotate = true
-                                }
-                            })
-                            break
-                    }
+            // dynamically add a new hotspot
+            const dynamicSpotPoint = new Vector3(0, 0, 4);
+            teleportation.addSnapPoint(dynamicSpotPoint);
+            const dynamicSpotBox = MeshBuilder.CreateBox('dynamicSpotBox', { height: 0.01, width: 1, depth: 1 }, this.scene);
+            dynamicSpotBox.position = dynamicSpotPoint;
+            dynamicSpotBox.material = spotMaterial;
+
+        }
+
+        // setup xr camera collisions
+        const camera = xr.input.xrCamera;
+        camera.checkCollisions = true;
+        camera.applyGravity = true;
+        camera.ellipsoid = new Vector3(0.3, 1, 0.3);
+
+        xr.baseExperience.onStateChangedObservable.add((webXRState) => {
+            const triangle = this.scene.getMeshByName('triangle')!;
+            switch (webXRState) {
+                case WebXRState.ENTERING_XR:
+                case WebXRState.IN_XR:
+                    triangle.isVisible = true;
+                    break;
+                case WebXRState.EXITING_XR:
+                case WebXRState.NOT_IN_XR:
+                default:
+                    triangle.isVisible = false;
+                    break;
+            }
+        });
+
+        xr.baseExperience.sessionManager.onXRFrameObservable.add(() => {
+            if (xr.baseExperience.state === WebXRState.IN_XR) {
+                if (this.disableTeleportation) {
+                    const triangle = this.scene.getMeshByName('triangle')!;
+                    const movementFeature = xr.baseExperience.featuresManager.getEnabledFeature("xr-controller-movement") as WebXRControllerMovement;
+                    xr.input.xrCamera.setTransformationFromNonVRCamera(this.scene.activeCamera, true); // put the camera where the non-VR camera is
+                    triangle.rotation.y = (0.5 + movementFeature.movementDirection.toEulerAngles().y);
+                    triangle.position.set(xr.input.xrCamera.position.x, 0.5, xr.input.xrCamera.position.z);
                 }
             }
         });
-    });
-}
+    }
+
 }
 new Main();
