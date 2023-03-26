@@ -6,7 +6,7 @@ import { Engine } from "@babylonjs/core/Engines";
 import { CannonJSPlugin, Color3, FreeCamera, HemisphericLight, Mesh, MeshBuilder, PhysicsImpostor, Scene, StandardMaterial, TargetCamera, Texture, Vector3, WebXRControllerComponent, WebXRControllerMovement, WebXRFeatureName, WebXRMotionControllerTeleportation, WebXRState } from "@babylonjs/core/";
 import * as CANNON from "cannon";
 /*
- * Mail application
+ * Main application
  * 
  * @class Main
 */
