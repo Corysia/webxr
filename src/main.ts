@@ -15,7 +15,7 @@ class Main {
     private canvas: HTMLCanvasElement;
     private engine: Engine;
     private scene: Scene;
-    private disableTeleportation = true;
+    private disableTeleportation = false;
     private movementOrientationHandedness = true; // true for right, false for left
     private movementSpeed = 0.1;
     private movementOrientationHMD = true; // can't change this yet as it seems to be broken in Babylon
@@ -255,7 +255,7 @@ class Main {
         const camera = xr.input.xrCamera;
         camera.checkCollisions = true;
         camera.applyGravity = true;
-        camera.ellipsoid = new Vector3(1, 1, 1);
+        camera.ellipsoid = new Vector3(0.3, 1, 0.3);
 
         xr.baseExperience.onStateChangedObservable.add((webXRState) => {
             const triangle = this.scene.getMeshByName('triangle')!;
@@ -274,11 +274,13 @@ class Main {
 
         xr.baseExperience.sessionManager.onXRFrameObservable.add(() => {
             if (xr.baseExperience.state === WebXRState.IN_XR) {
+                if (this.disableTeleportation) {
                 const triangle = this.scene.getMeshByName('triangle')!;
                 const movementFeature = xr.baseExperience.featuresManager.getEnabledFeature("xr-controller-movement") as WebXRControllerMovement;
                 xr.input.xrCamera.setTransformationFromNonVRCamera(this.scene.activeCamera, true); // put the camera where the non-VR camera is
                 triangle.rotation.y = (0.5 + movementFeature.movementDirection.toEulerAngles().y);
                 triangle.position.set(xr.input.xrCamera.position.x, 0.5, xr.input.xrCamera.position.z);
+                }
             }
         });
     }
