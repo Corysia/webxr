@@ -3,8 +3,8 @@ import "@babylonjs/inspector";
 import "@babylonjs/loaders/glTF";
 
 import { Engine } from "@babylonjs/core/Engines";
-import { Color3, FreeCamera, HemisphericLight, Mesh, MeshBuilder, Scene, StandardMaterial, TargetCamera, Texture, Vector3, WebXRControllerComponent, WebXRControllerMovement, WebXRFeatureName, WebXRState } from "@babylonjs/core/";
-
+import { CannonJSPlugin, Color3, FreeCamera, HemisphericLight, Mesh, MeshBuilder, PhysicsImpostor, Scene, StandardMaterial, TargetCamera, Texture, Vector3, WebXRControllerComponent, WebXRControllerMovement, WebXRFeatureName, WebXRMotionControllerTeleportation, WebXRState } from "@babylonjs/core/";
+import * as CANNON from "cannon";
 /*
  * Mail application
  * 
@@ -27,6 +27,11 @@ class Main {
     private movementTeleportBackwardsDistance = 0.7;
     private movementTeleportSnapPointsOnly = true;
     private movementRotationAngle = Math.PI / 8;
+
+    private enableHandTracking = true;
+    private disableDefaultHandMeshes = false;
+    private enableHandPhysics = false;
+
 
     private colors = {
         seaFoam: Color3.FromHexString("#16a085"),
@@ -92,6 +97,9 @@ class Main {
         var scene = new Scene(engine);
 
         scene.gravity = new Vector3(0, -9.81 / 60, 0);
+        const gravityVector = new Vector3(0, -9.81, 0);
+        const physicsPlugin = new CannonJSPlugin(true, 10, CANNON);
+        scene.enablePhysics(gravityVector, physicsPlugin);
         scene.collisionsEnabled = true;
 
         var light = new HemisphericLight("light1", new Vector3(0, 1, 0), scene);
@@ -242,19 +250,44 @@ class Main {
             floorMeshes: [this.scene.getMeshByName('ground1')!]
         });
 
-        // Need to reconfigure as the previous configuration is overwritten
+
         const featureManager = xr.baseExperience.featuresManager;
+
+        // enable hand tracking
+        if (this.enableHandTracking) {
+            try
+            {
+                featureManager.enableFeature(WebXRFeatureName.HAND_TRACKING, 'latest', {
+                    xrInput: xr.input,
+                    jointMeshes: {
+                        disableDefaultMeshes: this.disableDefaultHandMeshes,
+                        enablePhysics: this.enableHandPhysics,
+                        physicsProps: {
+                            impostorType: PhysicsImpostor.BoxImpostor,
+                            friction: 0.5,
+                            restitution: 0.3,
+                        },
+                        // see the documentation for custom hand meshes: https://doc.babylonjs.com/features/featuresDeepDive/webXR/WebXRSelectedFeatures#hand-meshes
+                    }
+                });
+            }
+            catch (e) {
+                console.log('Hand tracking not supported');
+            }
+        }
+
+        // Remember: Need to reconfigure as the previous configuration is overwritten
         if (this.disableTeleportation) {
             featureManager.disableFeature(WebXRFeatureName.TELEPORTATION);
-            featureManager.enableFeature(WebXRFeatureName.MOVEMENT, 'latest', {
+            const smoothLocomotion = featureManager.enableFeature(WebXRFeatureName.MOVEMENT, 'latest', {
                 xrInput: xr.input,
                 floorMeshes: [this.scene.getMeshByName('ground1')!],
                 customRegistrationConfigurations: swappedHandnessConfiguration,
                 // add options here
                 movementOrientationFollowsViewerPose: this.movementOrientationHMD,
-                movementSpeed: this.movementSpeed,
-                // rotationAngle: this.movementRotationAngle
-            });
+                rotationAngle: this.movementRotationAngle
+            }) as WebXRControllerMovement;
+            smoothLocomotion.movementSpeed = this.movementSpeed;
         }
         else {
             const torusMaterial = new StandardMaterial('torusMaterial', this.scene);
@@ -266,12 +299,17 @@ class Main {
             // you can apply a texture, too
 
             // Snap-to (hotspot) locations (optional)
+            const spotMaterial = new StandardMaterial('spotMaterial', this.scene);
+            spotMaterial.diffuseColor = Color3.Teal();
+            spotMaterial.emissiveColor = Color3.Teal();
             const interestingSpot = new Vector3(-4, 0, 4);
             const interestingSpotBox = MeshBuilder.CreateBox('interestingSpotBox', { height: 0.01, width: 1, depth: 1 }, this.scene);
             interestingSpotBox.position = interestingSpot;
+            interestingSpotBox.material = spotMaterial;
             const interestingSpot2 = new Vector3(4, 0, 4);
             const interestingSpotBox2 = MeshBuilder.CreateBox('interestingSpotBox2', { height: 0.01, width: 1, depth: 1 }, this.scene);
             interestingSpotBox2.position = interestingSpot2;
+            interestingSpotBox2.material = spotMaterial;
 
             featureManager.disableFeature(WebXRFeatureName.MOVEMENT);
             const teleportation = featureManager.enableFeature(WebXRFeatureName.TELEPORTATION, 'latest', {
@@ -293,10 +331,15 @@ class Main {
                     disableAnimation: this.movementDisableTorusAnimation,
                     disableLighting: this.movementDisableTorusLighting,
                 },
-            });
+            }) as WebXRMotionControllerTeleportation;
 
             // dynamically add a new hotspot
-            // teleportation.addSnapPoint(new Vector3(0, 0, 4));
+            const dynamicSpotPoint = new Vector3(0, 0, 4);
+            teleportation.addSnapPoint(dynamicSpotPoint);
+            const dynamicSpotBox = MeshBuilder.CreateBox('dynamicSpotBox', { height: 0.01, width: 1, depth: 1 }, this.scene);
+            dynamicSpotBox.position = dynamicSpotPoint;
+            dynamicSpotBox.material = spotMaterial;
+
         }
 
         // setup xr camera collisions
