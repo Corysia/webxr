@@ -19,6 +19,14 @@ class Main {
     private movementOrientationHandedness = true; // true for right, false for left
     private movementSpeed = 0.1;
     private movementOrientationHMD = true; // can't change this yet as it seems to be broken in Babylon
+    private movementParabolicRay = false;
+    private movementDisableTorusAnimation = true;
+    private movementDisableTorusLighting = true;
+    private movementRotationOnTeleport = true;
+    private movementTeleportBackwards = false;
+    private movementTeleportBackwardsDistance = 0.7;
+    private movementTeleportSnapPointsOnly = true;
+    private movementRotationAngle = Math.PI / 8;
 
     private colors = {
         seaFoam: Color3.FromHexString("#16a085"),
@@ -167,8 +175,8 @@ class Main {
             // evt.button === 2 is the right mouse button
             if (evt.button === 2) {
                 this.engine.enterPointerlock();
-            // } else if (evt.button === 1) { // middle mouse
-            //     SceneManager.Instance.Engine.exitPointerlock();
+                // } else if (evt.button === 1) { // middle mouse
+                //     SceneManager.Instance.Engine.exitPointerlock();
             }
         };
 
@@ -228,27 +236,67 @@ class Main {
         ];
 
         const swappedHandnessConfiguration = this.movementOrientationHandedness ? rightHandedMovementConfiguration : leftHandedMovementConfiguration;
-        
+
         const xr = await this.scene.createDefaultXRExperienceAsync({
-            // disableTeleportation: this.disableTeleportation,
+            disableTeleportation: this.disableTeleportation,
             floorMeshes: [this.scene.getMeshByName('ground1')!]
         });
+
+        // Need to reconfigure as the previous configuration is overwritten
         const featureManager = xr.baseExperience.featuresManager;
         if (this.disableTeleportation) {
             featureManager.disableFeature(WebXRFeatureName.TELEPORTATION);
             featureManager.enableFeature(WebXRFeatureName.MOVEMENT, 'latest', {
                 xrInput: xr.input,
+                floorMeshes: [this.scene.getMeshByName('ground1')!],
                 customRegistrationConfigurations: swappedHandnessConfiguration,
                 // add options here
                 movementOrientationFollowsViewerPose: this.movementOrientationHMD,
-                movementSpeed: this.movementSpeed
+                movementSpeed: this.movementSpeed,
+                // rotationAngle: this.movementRotationAngle
             });
         }
         else {
-            featureManager.enableFeature(WebXRFeatureName.TELEPORTATION, 'latest', {
+            const torusMaterial = new StandardMaterial('torusMaterial', this.scene);
+            torusMaterial.backFaceCulling = false;
+            torusMaterial.diffuseColor = Color3.Green();
+            torusMaterial.specularColor = Color3.Black();
+            torusMaterial.emissiveColor = Color3.FromHexString('#55FF99');
+            torusMaterial.alpha = 0.5;
+            // you can apply a texture, too
+
+            // Snap-to (hotspot) locations (optional)
+            const interestingSpot = new Vector3(-4, 0, 4);
+            const interestingSpotBox = MeshBuilder.CreateBox('interestingSpotBox', { height: 0.01, width: 1, depth: 1 }, this.scene);
+            interestingSpotBox.position = interestingSpot;
+            const interestingSpot2 = new Vector3(4, 0, 4);
+            const interestingSpotBox2 = MeshBuilder.CreateBox('interestingSpotBox2', { height: 0.01, width: 1, depth: 1 }, this.scene);
+            interestingSpotBox2.position = interestingSpot2;
+
+            featureManager.disableFeature(WebXRFeatureName.MOVEMENT);
+            const teleportation = featureManager.enableFeature(WebXRFeatureName.TELEPORTATION, 'latest', {
                 xrInput: xr.input,
-                floorMeshes: [this.scene.getMeshByName('ground1')!]
+                floorMeshes: [this.scene.getMeshByName('ground1')!],
+                parabolicRayEnabled: this.movementParabolicRay,
+                rotationEnabled: this.movementRotationOnTeleport,
+                backwardsMovementEnabled: this.movementTeleportBackwards,
+                backwardsTeleportationDistance: this.movementTeleportBackwardsDistance,
+                rotationAngle: this.movementRotationAngle,
+                renderGroupId: 1,
+                snapPositions: [interestingSpot, interestingSpot2],
+                snapToPositonRadius: 1.2,
+                snapPointsOnly: this.movementTeleportSnapPointsOnly,
+                defaultTargetMeshOptions: {
+                    teleportationFillColor: "#55FF99",
+                    teleportationBorderColor: "blue",
+                    torusArrowMaterial: torusMaterial,
+                    disableAnimation: this.movementDisableTorusAnimation,
+                    disableLighting: this.movementDisableTorusLighting,
+                },
             });
+
+            // dynamically add a new hotspot
+            // teleportation.addSnapPoint(new Vector3(0, 0, 4));
         }
 
         // setup xr camera collisions
@@ -275,11 +323,11 @@ class Main {
         xr.baseExperience.sessionManager.onXRFrameObservable.add(() => {
             if (xr.baseExperience.state === WebXRState.IN_XR) {
                 if (this.disableTeleportation) {
-                const triangle = this.scene.getMeshByName('triangle')!;
-                const movementFeature = xr.baseExperience.featuresManager.getEnabledFeature("xr-controller-movement") as WebXRControllerMovement;
-                xr.input.xrCamera.setTransformationFromNonVRCamera(this.scene.activeCamera, true); // put the camera where the non-VR camera is
-                triangle.rotation.y = (0.5 + movementFeature.movementDirection.toEulerAngles().y);
-                triangle.position.set(xr.input.xrCamera.position.x, 0.5, xr.input.xrCamera.position.z);
+                    const triangle = this.scene.getMeshByName('triangle')!;
+                    const movementFeature = xr.baseExperience.featuresManager.getEnabledFeature("xr-controller-movement") as WebXRControllerMovement;
+                    xr.input.xrCamera.setTransformationFromNonVRCamera(this.scene.activeCamera, true); // put the camera where the non-VR camera is
+                    triangle.rotation.y = (0.5 + movementFeature.movementDirection.toEulerAngles().y);
+                    triangle.position.set(xr.input.xrCamera.position.x, 0.5, xr.input.xrCamera.position.z);
                 }
             }
         });
