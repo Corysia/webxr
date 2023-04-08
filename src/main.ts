@@ -4,6 +4,7 @@ import "@babylonjs/loaders/glTF";
 
 import { Engine } from "@babylonjs/core/Engines";
 import { CannonJSPlugin, Color3, FreeCamera, HemisphericLight, Mesh, MeshBuilder, PhysicsImpostor, Scene, StandardMaterial, TargetCamera, Texture, Vector3, WebXRControllerComponent, WebXRControllerMovement, WebXRFeatureName, WebXRMotionControllerTeleportation, WebXRState } from "@babylonjs/core/";
+import { CreateSimpleButton } from "./gui";
 import * as CANNON from "cannon";
 /*
  * Main application
@@ -65,6 +66,11 @@ class Main {
         this.setupCamera();
         this.setupXR();
 
+        var button = CreateSimpleButton("Toggle Teleportation", "toggleTeleportation", () => {
+            this.disableTeleportation = !this.disableTeleportation;
+        });
+        button.
+
         window.addEventListener("resize", () => {
             this.engine.resize();
         });
@@ -122,7 +128,7 @@ class Main {
 
         const orangeMaterial = new StandardMaterial('orangeMat', scene);
         orangeMaterial.specularColor = Color3.Black();
-        orangeMaterial.emissiveColor = Color3.FromHexString('#FFAF00');
+        orangeMaterial.emissiveColor = this.colors.orange;
 
         const greenMaterial = new StandardMaterial('greenMat', scene);
         greenMaterial.specularColor = Color3.Black();
