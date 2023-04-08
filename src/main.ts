@@ -3,9 +3,9 @@ import "@babylonjs/inspector";
 import "@babylonjs/loaders/glTF";
 
 import { Engine } from "@babylonjs/core/Engines";
-import { CannonJSPlugin, Color3, FreeCamera, HemisphericLight, Mesh, MeshBuilder, PhysicsImpostor, Scene, StandardMaterial, TargetCamera, Texture, Vector3, WebXRControllerComponent, WebXRControllerMovement, WebXRFeatureName, WebXRMotionControllerTeleportation, WebXRState } from "@babylonjs/core/";
-import { CreateSimpleButton } from "./gui";
 import * as CANNON from "cannon";
+import { Color3, Vector3 } from "@babylonjs/core/Maths";
+import { CannonJSPlugin, FreeCamera, HemisphericLight, MeshBuilder, PhysicsImpostor, Scene, StandardMaterial, Texture, WebXRControllerComponent, WebXRControllerMovement, WebXRFeatureName, WebXRMotionControllerTeleportation, WebXRState } from "@babylonjs/core";
 /*
  * Main application
  * 
@@ -66,11 +66,6 @@ class Main {
         this.setupCamera();
         this.setupXR();
 
-        var button = CreateSimpleButton("Toggle Teleportation", "toggleTeleportation", () => {
-            this.disableTeleportation = !this.disableTeleportation;
-        });
-        button.
-
         window.addEventListener("resize", () => {
             this.engine.resize();
         });
@@ -100,7 +95,7 @@ class Main {
      * @returns {Scene}
      */
     public CreateScene(engine: Engine, canvas: HTMLCanvasElement): Scene {
-        var scene = new Scene(engine);
+        let scene = new Scene(engine);
 
         scene.gravity = new Vector3(0, -9.81 / 60, 0);
         const gravityVector = new Vector3(0, -9.81, 0);
@@ -108,9 +103,9 @@ class Main {
         scene.enablePhysics(gravityVector, physicsPlugin);
         scene.collisionsEnabled = true;
 
-        var light = new HemisphericLight("light1", new Vector3(0, 1, 0), scene);
+        let light = new HemisphericLight("light1", new Vector3(0, 1, 0), scene);
         light.intensity = 0.7;
-        var sphere = MeshBuilder.CreateSphere("sphere1", { segments: 16, diameter: 1 }, scene);
+        let sphere = MeshBuilder.CreateSphere("sphere1", { segments: 16, diameter: 1 }, scene);
         sphere.position.y = 1.25;
 
         const ground1 = MeshBuilder.CreateGround('ground1', { width: 200, height: 200, subdivisions: 16 }, scene);
@@ -118,7 +113,7 @@ class Main {
         ground1.checkCollisions = true;
 
         //Simple crate
-        var box = MeshBuilder.CreateBox("crate", { size: 2 }, scene);
+        let box = MeshBuilder.CreateBox("crate", { size: 2 }, scene);
         const boxMaterial = new StandardMaterial("Mat", scene);
         boxMaterial.diffuseTexture = new Texture("textures/crate.png", scene);
         boxMaterial.diffuseTexture.hasAlpha = true;
@@ -384,3 +379,7 @@ class Main {
 
 }
 new Main();
+
+function CreateSimpleButton(arg0: string, arg1: string, arg2: () => void) {
+    throw new Error("Function not implemented.");
+}
