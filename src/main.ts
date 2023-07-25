@@ -20,7 +20,7 @@ class Main {
     private movementOrientationHandedness = true; // true for right, false for left
     private movementSpeed = 0.1;
     private movementOrientationHMD = true; // can't change this yet as it seems to be broken in Babylon
-    private movementParabolicRay = false;
+    private movementParabolicRay = true;
     private movementDisableTorusAnimation = true;
     private movementDisableTorusLighting = true;
     private movementRotationOnTeleport = true;
@@ -31,7 +31,7 @@ class Main {
 
     private enableHandTracking = true;
     private disableDefaultHandMeshes = false;
-    private enableHandPhysics = false;
+    private enableHandPhysics = true;
 
 
     private colors = {
@@ -112,7 +112,7 @@ class Main {
         ground1.position.y = 0;
         ground1.checkCollisions = true;
 
-        //Simple crate
+        // Simple crate
         let box = MeshBuilder.CreateBox("crate", { size: 2 }, scene);
         const boxMaterial = new StandardMaterial("Mat", scene);
         boxMaterial.diffuseTexture = new Texture("textures/crate.png", scene);
@@ -244,7 +244,7 @@ class Main {
             },
         ];
 
-        const swappedHandnessConfiguration = this.movementOrientationHandedness ? rightHandedMovementConfiguration : leftHandedMovementConfiguration;
+        const swappedHandednessConfiguration = this.movementOrientationHandedness ? rightHandedMovementConfiguration : leftHandedMovementConfiguration;
 
         const xr = await this.scene.createDefaultXRExperienceAsync({
             disableTeleportation: this.disableTeleportation,
@@ -283,7 +283,7 @@ class Main {
             const smoothLocomotion = featureManager.enableFeature(WebXRFeatureName.MOVEMENT, 'latest', {
                 xrInput: xr.input,
                 floorMeshes: [this.scene.getMeshByName('ground1')!],
-                customRegistrationConfigurations: swappedHandnessConfiguration,
+                customRegistrationConfigurations: swappedHandednessConfiguration,
                 // add options here
                 movementOrientationFollowsViewerPose: this.movementOrientationHMD,
                 rotationAngle: this.movementRotationAngle
@@ -299,7 +299,7 @@ class Main {
             torusMaterial.alpha = 0.5;
             // you can apply a texture, too
 
-            // Snap-to (hotspot) locations (optional)
+            // Snap-to (hot spot) locations (optional)
             const spotMaterial = new StandardMaterial('spotMaterial', this.scene);
             spotMaterial.diffuseColor = Color3.Teal();
             spotMaterial.emissiveColor = Color3.Teal();
@@ -334,7 +334,7 @@ class Main {
                 },
             }) as WebXRMotionControllerTeleportation;
 
-            // dynamically add a new hotspot
+            // dynamically add a new hot spot
             const dynamicSpotPoint = new Vector3(0, 0, 4);
             teleportation.addSnapPoint(dynamicSpotPoint);
             const dynamicSpotBox = MeshBuilder.CreateBox('dynamicSpotBox', { height: 0.01, width: 1, depth: 1 }, this.scene);
