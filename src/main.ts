@@ -197,6 +197,48 @@ class Main {
         return camera;
     }
 
+    private createRightHandMovementConfiguration(): any[] {
+        return [
+            {
+                allowedComponentTypes: [WebXRControllerComponent.THUMBSTICK_TYPE, WebXRControllerComponent.TOUCHPAD_TYPE],
+                forceHandedness: "right",
+                axisChangedHandler: (axes: { x: number; y: number; }, movementState: { rotateX: any; rotateY: any; }, featureContext: { rotationThreshold: number; }, xrInput: any) => {
+                    movementState.rotateX = Math.abs(axes.x) > featureContext.rotationThreshold ? axes.x : 0;
+                    movementState.rotateY = Math.abs(axes.y) > featureContext.rotationThreshold ? axes.y : 0;
+                },
+            },
+            {
+                allowedComponentTypes: [WebXRControllerComponent.THUMBSTICK_TYPE, WebXRControllerComponent.TOUCHPAD_TYPE],
+                forceHandedness: "left",
+                axisChangedHandler: (axes: { x: number; y: number; }, movementState: { moveX: any; moveY: any; }, featureContext: { movementThreshold: number; }, xrInput: any) => {
+                    movementState.moveX = Math.abs(axes.x) > featureContext.movementThreshold ? axes.x : 0;
+                    movementState.moveY = Math.abs(axes.y) > featureContext.movementThreshold ? axes.y : 0;
+                },
+            },
+        ];
+    }
+
+    private createLeftHandMovementConfiguration(): any[] {
+        return [
+            {
+                allowedComponentTypes: [WebXRControllerComponent.THUMBSTICK_TYPE, WebXRControllerComponent.TOUCHPAD_TYPE],
+                forceHandedness: "left",
+                axisChangedHandler: (axes: { x: number; y: number; }, movementState: { rotateX: any; rotateY: any; }, featureContext: { rotationThreshold: number; }, xrInput: any) => {
+                    movementState.rotateX = Math.abs(axes.x) > featureContext.rotationThreshold ? axes.x : 0;
+                    movementState.rotateY = Math.abs(axes.y) > featureContext.rotationThreshold ? axes.y : 0;
+                },
+            },
+            {
+                allowedComponentTypes: [WebXRControllerComponent.THUMBSTICK_TYPE, WebXRControllerComponent.TOUCHPAD_TYPE],
+                forceHandedness: "right",
+                axisChangedHandler: (axes: { x: number; y: number; }, movementState: { moveX: any; moveY: any; }, featureContext: { movementThreshold: number; }, xrInput: any) => {
+                    movementState.moveX = Math.abs(axes.x) > featureContext.movementThreshold ? axes.x : 0;
+                    movementState.moveY = Math.abs(axes.y) > featureContext.movementThreshold ? axes.y : 0;
+                },
+            },
+        ];
+    }
+
     /**
      * Setup the XR experience
      * @returns {Promise<void>}
@@ -206,44 +248,8 @@ class Main {
      */
     private async setupXR(): Promise<void> {
 
-        const rightHandedMovementConfiguration = [
-            {
-                allowedComponentTypes: [WebXRControllerComponent.THUMBSTICK_TYPE, WebXRControllerComponent.TOUCHPAD_TYPE],
-                forceHandedness: "right",
-                axisChangedHandler: (axes: { x: number; y: number; }, movementState: { rotateX: any; rotateY: any; }, featureContext: { rotationThreshold: number; }, xrInput: any) => {
-                    movementState.rotateX = Math.abs(axes.x) > featureContext.rotationThreshold ? axes.x : 0;
-                    movementState.rotateY = Math.abs(axes.y) > featureContext.rotationThreshold ? axes.y : 0;
-                },
-            },
-            {
-                allowedComponentTypes: [WebXRControllerComponent.THUMBSTICK_TYPE, WebXRControllerComponent.TOUCHPAD_TYPE],
-                forceHandedness: "left",
-                axisChangedHandler: (axes: { x: number; y: number; }, movementState: { moveX: any; moveY: any; }, featureContext: { movementThreshold: number; }, xrInput: any) => {
-                    movementState.moveX = Math.abs(axes.x) > featureContext.movementThreshold ? axes.x : 0;
-                    movementState.moveY = Math.abs(axes.y) > featureContext.movementThreshold ? axes.y : 0;
-                },
-            },
-        ];
-
-        const leftHandedMovementConfiguration = [
-            {
-                allowedComponentTypes: [WebXRControllerComponent.THUMBSTICK_TYPE, WebXRControllerComponent.TOUCHPAD_TYPE],
-                forceHandedness: "left",
-                axisChangedHandler: (axes: { x: number; y: number; }, movementState: { rotateX: any; rotateY: any; }, featureContext: { rotationThreshold: number; }, xrInput: any) => {
-                    movementState.rotateX = Math.abs(axes.x) > featureContext.rotationThreshold ? axes.x : 0;
-                    movementState.rotateY = Math.abs(axes.y) > featureContext.rotationThreshold ? axes.y : 0;
-                },
-            },
-            {
-                allowedComponentTypes: [WebXRControllerComponent.THUMBSTICK_TYPE, WebXRControllerComponent.TOUCHPAD_TYPE],
-                forceHandedness: "right",
-                axisChangedHandler: (axes: { x: number; y: number; }, movementState: { moveX: any; moveY: any; }, featureContext: { movementThreshold: number; }, xrInput: any) => {
-                    movementState.moveX = Math.abs(axes.x) > featureContext.movementThreshold ? axes.x : 0;
-                    movementState.moveY = Math.abs(axes.y) > featureContext.movementThreshold ? axes.y : 0;
-                },
-            },
-        ];
-
+        const rightHandedMovementConfiguration = this.createRightHandMovementConfiguration();
+        const leftHandedMovementConfiguration = this.createLeftHandMovementConfiguration();
         const swappedHandednessConfiguration = this.movementOrientationHandedness ? rightHandedMovementConfiguration : leftHandedMovementConfiguration;
 
         const xr = await this.scene.createDefaultXRExperienceAsync({
@@ -256,8 +262,7 @@ class Main {
 
         // enable hand tracking
         if (this.enableHandTracking) {
-            try
-            {
+            try {
                 featureManager.enableFeature(WebXRFeatureName.HAND_TRACKING, 'latest', {
                     xrInput: xr.input,
                     jointMeshes: {
@@ -323,7 +328,7 @@ class Main {
                 rotationAngle: this.movementRotationAngle,
                 renderGroupId: 1,
                 snapPositions: [interestingSpot, interestingSpot2],
-                snapToPositonRadius: 1.2,
+                snapToPositionRadius: 1.2,
                 snapPointsOnly: this.movementTeleportSnapPointsOnly,
                 defaultTargetMeshOptions: {
                     teleportationFillColor: "#55FF99",
@@ -371,15 +376,14 @@ class Main {
                     const movementFeature = xr.baseExperience.featuresManager.getEnabledFeature("xr-controller-movement") as WebXRControllerMovement;
                     xr.input.xrCamera.setTransformationFromNonVRCamera(this.scene.activeCamera, true); // put the camera where the non-VR camera is
                     triangle.rotation.y = (0.5 + movementFeature.movementDirection.toEulerAngles().y);
-                    triangle.position.set(xr.input.xrCamera.position.x, 0.5, xr.input.xrCamera.position.z);
+                    triangle.position.set(xr.input.xrCamera.position.x, 0.001, xr.input.xrCamera.position.z);
+                } else {
+                    const triangle = this.scene.getMeshByName('triangle')!;
+                    triangle.isVisible = false;
                 }
             }
         });
     }
 
 }
-new Main();
-
-function CreateSimpleButton(arg0: string, arg1: string, arg2: () => void) {
-    throw new Error("Function not implemented.");
-}
+const main = new Main();
