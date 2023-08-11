@@ -5,7 +5,9 @@ import "@babylonjs/loaders/glTF";
 import { Engine } from "@babylonjs/core/Engines";
 import * as CANNON from "cannon";
 import { Color3, Vector3 } from "@babylonjs/core/Maths";
-import { CannonJSPlugin, FreeCamera, HemisphericLight, MeshBuilder, PhysicsImpostor, Scene, StandardMaterial, Texture, WebXRControllerComponent, WebXRControllerMovement, WebXRFeatureName, WebXRMotionControllerTeleportation, WebXRState } from "@babylonjs/core";
+import { AbstractMesh, CannonJSPlugin, FreeCamera, HemisphericLight, MeshBuilder, PhysicsImpostor, Scene, StandardMaterial, Texture, WebXRControllerComponent, WebXRControllerMovement, WebXRFeatureName, WebXRMotionControllerTeleportation, WebXRState } from "@babylonjs/core";
+import { GUI3DManager, HolographicButton } from "@babylonjs/gui/3D";
+import { TextBlock } from "@babylonjs/gui";
 /*
  * Main application
  * 
@@ -65,6 +67,7 @@ class Main {
         this.engine = new Engine(this.canvas, true);
         this.scene = this.CreateScene(this.engine, this.canvas);
         this.setupCamera();
+        this.setupButton();
         this.setupXR();
 
         window.addEventListener("resize", () => {
@@ -400,6 +403,31 @@ class Main {
                     triangle.isVisible = false;
                 }
             }
+        });
+    }
+
+    private setupButton(): void {
+        let anchor = new AbstractMesh("anchor", this.scene);
+        let button = new HolographicButton("down");
+        let manager = new GUI3DManager(this.scene);
+        manager.addControl(button);
+        button.linkToTransformNode(anchor);
+        button.position.z = -2.0;
+        button.position.y = 1.0;
+        button.scaling = new Vector3(0.5, 0.5, 0.01);
+        button.imageUrl = "https://raw.githubusercontent.com/microsoft/MixedRealityToolkit-Unity/main/Assets/MRTK/SDK/StandardAssets/Textures/IconMicrophone.png";
+
+        button.text = "Press Me";
+        button.onPointerUpObservable.add(() => {
+            button.plateMaterial.alphaMode = Engine.ALPHA_ONEONE;
+            if (button.text === "On") {
+                button.text = "Off";
+                button.plateMaterial.diffuseColor = new Color3(255, 0, 0)
+            } else {
+                button.text = "On";
+                button.plateMaterial.diffuseColor = new Color3(0, 255, 0);
+            }
+            console.log("button pressed");
         });
     }
 }
