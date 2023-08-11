@@ -28,6 +28,7 @@ class Main {
     private movementTeleportBackwardsDistance = 0.7;
     private movementTeleportSnapPointsOnly = true;
     private movementRotationAngle = Math.PI / 8;
+    private movementRotationSpeed = 1.0;
 
     private enableHandTracking = true;
     private disableDefaultHandMeshes = false;
@@ -115,7 +116,7 @@ class Main {
         // Simple crate
         let box = MeshBuilder.CreateBox("crate", { size: 2 }, scene);
         const boxMaterial = new StandardMaterial("Mat", scene);
-        boxMaterial.diffuseTexture = new Texture("textures/crate.png", scene);
+        boxMaterial.diffuseTexture = new Texture("https://playground.babylonjs.com/textures/crate.png", scene);
         boxMaterial.diffuseTexture.hasAlpha = true;
         box.position = new Vector3(5, 1, 5);
         box.checkCollisions = true;
@@ -157,6 +158,12 @@ class Main {
         return scene;
     }
 
+    /**
+     * Setup the camera
+     * @returns {FreeCamera}
+     * @memberof Main
+     * @private
+     */
     private setupCamera(): FreeCamera {
         const camera = new FreeCamera("FirstPersonController", new Vector3(0, 2.5, -6), this.scene);
         camera.inputs.addMouse();
@@ -197,6 +204,10 @@ class Main {
         return camera;
     }
 
+    /**
+     * Create the movement configuration for the right hand
+     * @returns {any[]}
+     */
     private createRightHandMovementConfiguration(): any[] {
         return [
             {
@@ -218,6 +229,12 @@ class Main {
         ];
     }
 
+    /**
+     * Create the movement configuration for the left hand
+     * @returns {any[]}
+     * @memberof Main
+     * @private
+     */
     private createLeftHandMovementConfiguration(): any[] {
         return [
             {
@@ -291,6 +308,7 @@ class Main {
                 customRegistrationConfigurations: swappedHandednessConfiguration,
                 // add options here
                 movementOrientationFollowsViewerPose: this.movementOrientationHMD,
+                rotationSpeed: this.movementRotationSpeed,
                 rotationAngle: this.movementRotationAngle
             }) as WebXRControllerMovement;
             smoothLocomotion.movementSpeed = this.movementSpeed;
@@ -384,6 +402,6 @@ class Main {
             }
         });
     }
-
 }
+
 const main = new Main();
