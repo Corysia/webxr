@@ -7,7 +7,7 @@ import * as CANNON from "cannon";
 import { Color3, Vector3 } from "@babylonjs/core/Maths";
 import { AbstractMesh, CannonJSPlugin, FreeCamera, HemisphericLight, MeshBuilder, PhysicsImpostor, Scene, StandardMaterial, Texture, WebXRControllerComponent, WebXRControllerMovement, WebXRFeatureName, WebXRMotionControllerTeleportation, WebXRState } from "@babylonjs/core";
 import { GUI3DManager, HolographicButton } from "@babylonjs/gui/3D";
-import { TextBlock } from "@babylonjs/gui";
+
 /*
  * Main application
  * 
@@ -151,7 +151,7 @@ class Main {
         ground4.position.y = 0.75;
         ground4.material = redMaterial;
 
-        const triangle = MeshBuilder.CreateCylinder('triangle', { height: 1, diameter: 1, tessellation: 4, subdivisions: 4 }, scene);
+        const triangle = MeshBuilder.CreateCylinder('triangle', { height: 0.01, diameter: 1, tessellation: 4, subdivisions: 4 }, scene);
         const triangleMaterial = new StandardMaterial('triangle-mat', scene);
         triangleMaterial.emissiveColor = Color3.Red();
         triangleMaterial.specularColor = Color3.Black();
@@ -395,9 +395,9 @@ class Main {
                 if (this.disableTeleportation) {
                     const triangle = this.scene.getMeshByName('triangle')!;
                     const movementFeature = xr.baseExperience.featuresManager.getEnabledFeature("xr-controller-movement") as WebXRControllerMovement;
-                    xr.input.xrCamera.setTransformationFromNonVRCamera(this.scene.activeCamera, true); // put the camera where the non-VR camera is
-                    triangle.rotation.y = (0.5 + movementFeature.movementDirection.toEulerAngles().y);
-                    triangle.position.set(xr.input.xrCamera.position.x, 0.001, xr.input.xrCamera.position.z);
+                    xr.input.xrCamera.setTransformationFromNonVRCamera(this.scene.activeCamera, true); // sync the position of the non-vr camera with the vr camera
+                    triangle.rotation.y = (movementFeature.movementDirection.toEulerAngles().y); // rotate the triangle to match the direction of movement
+                    triangle.position.set(xr.input.xrCamera.position.x, 0.001, xr.input.xrCamera.position.z); // move the triangle to the position of the vr camera
                 } else {
                     const triangle = this.scene.getMeshByName('triangle')!;
                     triangle.isVisible = false;
