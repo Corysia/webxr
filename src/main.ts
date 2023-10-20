@@ -5,7 +5,7 @@ import "@babylonjs/loaders/glTF";
 import { Engine } from "@babylonjs/core/Engines";
 import * as CANNON from "cannon";
 import { Color3, Vector3 } from "@babylonjs/core/Maths";
-import { AbstractMesh, CannonJSPlugin, FreeCamera, HemisphericLight, MeshBuilder, PhysicsImpostor, Scene, StandardMaterial, Texture, WebXRControllerComponent, WebXRControllerMovement, WebXRFeatureName, WebXRMotionControllerTeleportation, WebXRState } from "@babylonjs/core";
+import { AbstractMesh, CannonJSPlugin, FreeCamera, HemisphericLight, MeshBuilder, PhysicsImpostor, Scene, StandardMaterial, Texture, TransformNode, WebXRControllerComponent, WebXRControllerMovement, WebXRFeatureName, WebXRMotionControllerTeleportation, WebXRState, WebXRWalkingLocomotion } from "@babylonjs/core";
 import { GUI3DManager, HolographicButton } from "@babylonjs/gui/3D";
 
 /*
@@ -28,7 +28,7 @@ class Main {
     private movementRotationOnTeleport = true;
     private movementTeleportBackwards = false;
     private movementTeleportBackwardsDistance = 0.7;
-    private movementTeleportSnapPointsOnly = true;
+    private movementTeleportSnapPointsOnly = false;
     private movementRotationAngle = Math.PI / 8;
     private movementRotationSpeed = 1.0;
 
@@ -276,7 +276,9 @@ class Main {
             disableTeleportation: this.disableTeleportation,
             floorMeshes: [this.scene.getMeshByName('ground1')!]
         });
-
+        xr.baseExperience.camera.ellipsoid = new Vector3(0.3, 1, 0.3);
+        xr.baseExperience.camera.checkCollisions = true;
+        xr.baseExperience.camera.applyGravity = true;
 
         const featureManager = xr.baseExperience.featuresManager;
 
@@ -300,6 +302,11 @@ class Main {
             catch (e) {
                 console.log('Hand tracking not supported');
             }
+            const xrRoot = new TransformNode("xrRoot", this.scene);
+            xr.baseExperience.camera.parent = xrRoot;
+            // Can't use the root like I would like because it doesn't recognize when the HMD looks in a different direction
+            // TODO: collision detection is not working with walking locomotion.
+            featureManager.enableFeature(WebXRFeatureName.WALKING_LOCOMOTION, "latest", { locomotionTarget: xr.baseExperience.camera });
         }
 
         // Remember: Need to reconfigure as the previous configuration is overwritten
@@ -341,6 +348,7 @@ class Main {
             featureManager.disableFeature(WebXRFeatureName.MOVEMENT);
             const teleportation = featureManager.enableFeature(WebXRFeatureName.TELEPORTATION, 'latest', {
                 xrInput: xr.input,
+                forceHandedness: this.movementOrientationHandedness ? "left" : "right",
                 floorMeshes: [this.scene.getMeshByName('ground1')!],
                 parabolicRayEnabled: this.movementParabolicRay,
                 rotationEnabled: this.movementRotationOnTeleport,
@@ -415,7 +423,7 @@ class Main {
         button.position.z = -2.0;
         button.position.y = 1.0;
         button.scaling = new Vector3(0.5, 0.5, 0.01);
-        button.imageUrl = "https://raw.githubusercontent.com/microsoft/MixedRealityToolkit-Unity/main/Assets/MRTK/SDK/StandardAssets/Textures/IconMicrophone.png";
+        // button.imageUrl = "https://raw.githubusercontent.com/microsoft/MixedRealityToolkit-Unity/main/Assets/MRTK/SDK/StandardAssets/Textures/IconMicrophone.png";
 
         button.text = "Press Me";
         button.onPointerUpObservable.add(() => {
