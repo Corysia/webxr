@@ -12,8 +12,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@babylonjs/core": "^6.11.0",
-    "@babylonjs/inspector": "^6.11.0",
+    "@babylonjs/inspector": "^7.0.0",
     "@types/cannon": "^0.1.8",
     "copy-webpack-plugin": "^11.0.0",
     "html-webpack-plugin": "^5.5.0",
@@ -24,9 +23,8 @@
     "webpack-dev-server": "^4.11.1"
   },
   "dependencies": {
-    "@babylonjs/core": "^6.11.0",
-    "@babylonjs/gui": "^6.11.0",
-    "@babylonjs/inspector": "^6.11.0",
+    "@babylonjs/core": "^7.0.0",
+    "@babylonjs/gui": "^7.0.0",
     "cannon": "^0.6.2"
   }
 }

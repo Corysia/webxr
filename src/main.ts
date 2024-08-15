@@ -384,7 +384,7 @@ class Main {
         camera.ellipsoid = new Vector3(0.3, 1, 0.3);
 
         xr.baseExperience.onStateChangedObservable.add((webXRState) => {
-            const triangle = this.scene.getMeshByName('triangle')!;
+            const triangle = this.scene.getMeshByName('triangle');
             switch (webXRState) {
                 case WebXRState.ENTERING_XR:
                 case WebXRState.IN_XR:
@@ -401,13 +401,13 @@ class Main {
         xr.baseExperience.sessionManager.onXRFrameObservable.add(() => {
             if (xr.baseExperience.state === WebXRState.IN_XR) {
                 if (this.disableTeleportation) {
-                    const triangle = this.scene.getMeshByName('triangle')!;
+                    const triangle = this.scene.getMeshByName('triangle');
                     const movementFeature = xr.baseExperience.featuresManager.getEnabledFeature("xr-controller-movement") as WebXRControllerMovement;
                     xr.input.xrCamera.setTransformationFromNonVRCamera(this.scene.activeCamera, true); // sync the position of the non-vr camera with the vr camera
                     triangle.rotation.y = (movementFeature.movementDirection.toEulerAngles().y); // rotate the triangle to match the direction of movement
                     triangle.position.set(xr.input.xrCamera.position.x, 0.001, xr.input.xrCamera.position.z); // move the triangle to the position of the vr camera
                 } else {
-                    const triangle = this.scene.getMeshByName('triangle')!;
+                    const triangle = this.scene.getMeshByName('triangle');
                     triangle.isVisible = false;
                 }
             }
@@ -415,11 +415,11 @@ class Main {
     }
 
     private setupButton(): void {
-        let anchor = new AbstractMesh("anchor", this.scene);
+        // let anchor = new AbstractMesh("anchor", this.scene);
         let button = new HolographicButton("down");
         let manager = new GUI3DManager(this.scene);
         manager.addControl(button);
-        button.linkToTransformNode(anchor);
+        // button.linkToTransformNode(anchor);
         button.position.z = -2.0;
         button.position.y = 1.0;
         button.scaling = new Vector3(0.5, 0.5, 0.01);
